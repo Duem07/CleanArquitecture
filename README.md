@@ -1,215 +1,183 @@
-# Módulo de Limpieza
+# 🚀 Refactorización de API Hogar Universitario a Clean Architecture
 
-## Problemas Identificados en el Código Original
-1. **Acoplamiento Fuerte**: La lógica de negocio (cálculo de totales), la infraestructura (SQL Server, Cloudinary) y el framework (Express) estaban mezclados en un solo archivo de rutas.
-2. **Dificultad de Mantenimiento**: Cualquier cambio en la base de datos obligaba a modificar directamente el controlador HTTP.
-3. **Falta de Entidades**: No existía una representación clara del objeto "Limpieza" fuera de la tabla de la base de datos.
+Este proyecto documenta la migración integral de la API del Hogar Universitario desde un modelo acoplado hacia **Arquitectura Limpia (Clean Architecture)**. El objetivo principal es separar las reglas de negocio de los detalles técnicos como la base de datos (SQL Server), frameworks (Express) y servicios externos (Cloudinary, Firebase, SIAE).
 
-## Mejoras Aplicadas (Arquitectura Limpia)
-- **Capa de Dominio**: Se creó la entidad `Limpieza.js` que contiene las reglas de negocio, como el cálculo automático del puntaje total, de forma aislada.
-- **Capa de Aplicación**: Se implementó el caso de uso `RegistrarLimpieza.js` para orquestar el flujo entre la subida de imágenes, la persistencia y el envío de notificaciones push.
-- **Capa de Infraestructura**: 
-  - Se separó la configuración de Express en un archivo independiente (`express.js`).
-  - Se creó el repositorio `LimpiezaRepositorySql.js` para abstraer todas las consultas a MSSQL, desacoplando la lógica del motor de base de datos.
+---
 
-## Integración con Flutter
-- Se validó que la App móvil sigue enviando los datos correctamente al endpoint `/api/limpieza/registrar`, confirmando que la refactorización interna no rompió la comunicación externa.
+## 📑 Índice de Módulos Refactorizados
+* [Limpieza](#-módulo-de-limpieza)
+* [Autenticación](#-módulo-auth)
+* [Estudiantes](#-módulo-de-estudiantes)
+* [Dormitorios](#-módulo-de-dormitorios)
+* [Cultos](#-módulo-de-cultos)
+* [Reportes](#-módulo-de-reportes)
+* [Amonestaciones](#-módulo-de-amonestaciones)
+* [Asistencia](#-módulo-de-asistencia-cultos)
+* [Usuarios](#-módulo-de-usuarios)
+* [Configuración](#-módulo-de-configuración)
+* [Firmas Digitales](#-módulo-de-firmas-digitales)
 
-# Módulo Auth
-## Problema Identificado: 
-El manejo de contraseñas (bcrypt) y las llamadas externas a la API de la ULV (axios) estaban mezcladas con la lógica de las rutas, rompiendo el principio de responsabilidad única.
+---
 
-### Mejora Aplicada:
-Se implementó el patrón Repository para centralizar el acceso a la tabla dormi.Usuarios y se crearon Casos de Uso para manejar de forma independiente la validación de acceso externo y el cifrado de datos.
+## 🧹 Módulo de Limpieza
 
-### Dificultades:
-Coordinar transacciones SQL complejas que afectan a múltiples tablas (Usuarios y Estudiantes) al momento del registro, lo cual se resolvió encapsulando la transacción dentro del repositorio.
+| Capa | Componente | Mejora Aplicada |
+| :--- | :--- | :--- |
+| **Dominio** | `Limpieza.js` | Entidad con lógica de cálculo de puntaje total aislada. |
+| **Aplicación** | `RegistrarLimpieza.js` | Orquestador de fotos (Cloudinary), persistencia y avisos push. |
+| **Infraestructura** | `LimpiezaRepositorySql.js` | Abstracción total de consultas MSSQL del controlador HTTP. |
 
-# Módulo de Estudiantes
-## 1. Problemas Identificados en el Código Original
-Mezcla de Orígenes de Datos: Las rutas consultaban tanto la base de datos local (dormi.Estudiantes) como una base de datos externa (SIAE para las fotos) de forma directa.
+### 🔍 Análisis de Refactorización
+* **Problema:** Acoplamiento fuerte entre Express y SQL, dificultando cambios en la lógica de evaluación.
+* **Solución Clean:** Se separó la configuración de Express en `express.js` y se delegó la lógica de negocio al Caso de Uso.
+* **Integración Flutter:** El endpoint `/api/limpieza/registrar` mantiene su contrato para no romper la comunicación con la App.
 
-### Tratamiento de Datos Binarios:
-El envío de buffers de imágenes directamente desde el controlador HTTP dificultaba la creación de pruebas unitarias y el desacoplamiento.
+---
 
-### Falta de Abstracción: 
-No existía una representación clara del "Estudiante" como entidad de negocio, solo como resultado de una consulta SQL.
+## 🔐 Módulo Auth
 
-## 2. Mejoras Aplicadas (Arquitectura Limpia)
-### Capa de Dominio: 
-Se implementó la entidad Estudiante.js, estableciendo una estructura de datos estándar que es independiente de cómo se almacene en SQL Server.
+| Capa | Componente | Mejora Aplicada |
+| :--- | :--- | :--- |
+| **Dominio** | `Usuario.js` | Modelo de datos independiente de la estructura de la tabla. |
+| **Aplicación** | `LoginUsuario.js` | Lógica de seguridad (bcrypt) y acceso externo (axios) desacoplada. |
+| **Infraestructura** | `UsuarioRepositorySql.js` | Manejo de transacciones complejas para registros multi-tabla. |
 
-### Capa de Aplicación: 
-Se crearon Casos de Uso específicos como ObtenerFotoEstudiante.js y ActualizarAsignacionCuarto.js. Esto separa la "acción" de la "tecnología".
+### 🔍 Análisis de Refactorización
+* **Problema:** El manejo de contraseñas y llamadas a APIs externas saturaban las rutas de Express.
+* **Solución Clean:** Se implementó el patrón **Repository** para centralizar el acceso a `dormi.Usuarios` y tablas de roles.
+* **Integración Flutter:** Seguridad robusta y transparente para el inicio de sesión del estudiante y preceptor.
 
-### Capa de Infraestructura (Patrón Repository):
+---
 
-Se creó EstudianteRepositorySql.js para centralizar el acceso a datos.
+## 👨‍🎓 Módulo de Estudiantes
 
-### Desacoplamiento Externo: 
-La lógica para obtener la foto desde la tabla externa [IDS-APP].[dbo].[controlEscolar_DocumentosAlumno] quedó encapsulada. Si el sistema externo cambia, solo se modifica el repositorio.
+| Capa | Componente | Mejora Aplicada |
+| :--- | :--- | :--- |
+| **Dominio** | `Estudiante.js` | Representación pura del estudiante como entidad de negocio. |
+| **Aplicación** | `ObtenerFotoEstudiante.js` | Tratamiento de datos binarios fuera del controlador. |
+| **Infraestructura** | `EstudianteRepositorySql.js` | Desacoplamiento de la base de datos externa (SIAE). |
 
-### Capa de Interfaces (HTTP):
-Las rutas en estudiantes.js ahora son minimalistas; solo reciben parámetros de la URL y delegan la responsabilidad al repositorio o al caso de uso correspondiente.
+### 🔍 Análisis de Refactorización
+* **Problema:** Mezcla de orígenes de datos locales y externos (IDS-APP) en un mismo archivo de rutas.
+* **Solución Clean:** Se encapsuló la obtención de fotos binarias, permitiendo que la API sea agnóstica al origen del archivo.
+* **Integración Flutter:** El widget de perfil en la App carga imágenes JPEG mediante buffers procesados limpiamente.
 
-## 3. Integración con Flutter
-Se verificó que el endpoint de la foto (/api/estudiantes/:matricula/foto) sigue devolviendo el Content-Type: image/jpeg, asegurando que el widget de perfil en Flutter cargue la imagen sin errores.
+---
 
-La funcionalidad de asignación de cuartos fue probada desde la App, confirmando que los cambios de estado en SQL Server se realizan correctamente bajo el nuevo flujo de capas.
+## 🏠 Módulo de Dormitorios
 
+| Capa | Componente | Mejora Aplicada |
+| :--- | :--- | :--- |
+| **Dominio** | `Dormitorio.js` | Definición de jerarquías (Edificio > Pasillo > Cuarto). |
+| **Aplicación** | `ObtenerMapaOcupacion.js` | Orquestador de la visualización en tiempo real del edificio. |
+| **Infraestructura** | `DormitorioRepositorySql.js` | Encapsulamiento de JOINs complejos para mapas de ocupación. |
 
-# Módulo de Dormitorios
-## 1. Problemas Identificados en el Código Original
-Lógica de Relaciones Expuesta: Las consultas que unían Pasillos, Cuartos y Estudiantes estaban escritas directamente en el archivo de rutas, exponiendo la complejidad de la base de datos a la capa de transporte (HTTP).
+### 🔍 Análisis de Refactorización
+* **Problema:** Lógica de relaciones físicas expuesta en las rutas y dificultad para agrupar datos.
+* **Solución Clean:** Se crearon modelos de infraestructura física, permitiendo validar capacidades de cuartos desde el dominio.
+* **Integración Flutter:** Dropdowns de selección y mapas de ocupación vinculados correctamente en la App.
 
-Dificultad de Agrupación: Al no existir una capa de aplicación, cualquier lógica para agrupar estudiantes por pasillo o edificio tenía que hacerse en Flutter o mezclarse con el código de Express.
+---
 
-Inexistencia de Modelos de Dominio: No se contaba con clases que representaran la infraestructura física (Edificios, Pasillos), lo que limitaba la validación de reglas de negocio (como no exceder la capacidad de un cuarto).
+## ⛪ Módulo de Cultos
 
-## 2. Mejoras Aplicadas (Arquitectura Limpia)
-Capa de Dominio: Se crearon las entidades Dormitorio, Pasillo y Cuarto. Esto permite que el sistema entienda la jerarquía física del Hogar Universitario independientemente de la base de datos.
+| Capa | Componente | Mejora Aplicada |
+| :--- | :--- | :--- |
+| **Dominio** | `TipoCulto.js` | Estandarización de eventos religiosos en la lógica del sistema. |
+| **Infraestructura** | `CultoRepositorySql.js` | Catálogo centralizado y escalable para futuros módulos. |
 
-Capa de Aplicación: Se implementó el caso de uso ObtenerMapaOcupacion.js, el cual se encarga de orquestar la información necesaria para que la administración visualice el estado de los edificios en tiempo real.
+### 🔍 Análisis de Refactorización
+* **Problema:** Consulta directa a catálogos en rutas, limitando la escalabilidad del sistema de asistencia.
+* **Solución Clean:** Repositorio minimalista que actúa como puente único hacia la tabla `Cat_TipoCulto`.
+* **Integración Flutter:** Garantía de persistencia en los contratos JSON para selectores de la App.
 
-Capa de Infraestructura (Patrón Repository):
+---
 
-Se centralizaron las consultas en DormitorioRepositorySql.js.
+## 📋 Módulo de Reportes
 
-Mantenibilidad: La consulta de ocupación (que usa múltiples LEFT JOINs) quedó encapsulada. Si la estructura de las tablas de dormitorios cambia, el resto de la API no se ve afectada.
+| Capa | Componente | Mejora Aplicada |
+| :--- | :--- | :--- |
+| **Dominio** | `Reporte.js` | Reglas de estado inicial según el tipo de usuario reportante. |
+| **Aplicación** | `CrearReporte.js` | Orquestación de acumulaciones y disparador de notificaciones. |
+| **Infraestructura** | `ReporteRepositorySql.js` | Transaccionalidad SQL y paginación de datos eficiente. |
 
-## 3. Integración con Flutter
-Se garantizó que los endpoints mantuvieran el mismo contrato de datos para que las listas desplegables (Dropdowns) de selección de pasillo y cuarto en la App de Flutter sigan funcionando sin ajustes en el frontend.
+### 🔍 Análisis de Refactorización
+* **Problema:** Falta de atomicidad en la creación de reportes y amonestaciones automáticas.
+* **Solución Clean:** Uso de **Transacciones SQL** para asegurar que el reporte y la sanción se guarden en conjunto.
+* **Integración Flutter:** Soporte para scroll infinito mediante paginación abstraída en el servidor.
 
-El "Mapa de Ocupación" fue validado para asegurar que los nombres de los estudiantes aparezcan correctamente vinculados a sus números de cuarto correspondientes.
+---
 
+## ⚠️ Módulo de Amonestaciones
 
-# Módulo de Cultos
+| Capa | Componente | Mejora Aplicada |
+| :--- | :--- | :--- |
+| **Dominio** | `Amonestacion.js` | Estandarización de sanciones y fechas de registro del sistema. |
+| **Aplicación** | `RegistrarAmonestacion.js` | Centralización de persistencia y comunicación asíncrona. |
+| **Infraestructura** | `AmonestacionRepositorySql.js` | Microservicio de catálogos y JOINs de niveles optimizados. |
 
-### 1. Problemas Identificados en el Código Original
-- **Lógica de Catálogo Expuesta**: La consulta directa a la tabla `dormi.Cat_TipoCulto` dentro del controlador HTTP mezclaba la definición del esquema de base de datos con la respuesta del API.
-- **Falta de Escalabilidad**: Al no tener una capa de repositorio, agregar lógica para filtrar cultos por fecha o semestre resultaría en código desordenado dentro de las rutas.
+### 🔍 Análisis de Refactorización
+* **Problema:** Duplicidad de consultas de catálogos y falta de abstracción en el envío de alertas.
+* **Solución Clean:** Desacoplamiento de notificaciones push, permitiendo registros manuales o automáticos (SISTEMA).
+* **Integración Flutter:** Historial disciplinario transparente con detalles de niveles y preceptores en el móvil.
 
-### 2. Mejoras Aplicadas (Arquitectura Limpia)
-- **Capa de Dominio**: Se creó la entidad `TipoCulto.js` para estandarizar la representación de los eventos religiosos dentro de la lógica del sistema.
-- **Capa de Infraestructura (Patrón Repository)**: Se implementó `CultoRepositorySql.js`, centralizando el acceso al catálogo. Esto permite que, si el catálogo migra a una base de datos externa o un servicio de microservicios, el cambio sea transparente para el resto de la aplicación.
-- **Simplicidad en Rutas**: El archivo `cultos.js` en infraestructura ahora solo actúa como un puente, cumpliendo con el principio de responsabilidad única.
+---
 
-### 3. Integración con Flutter
-- Se mantuvo el contrato de respuesta JSON (`success`, `data`) para asegurar que los selectores de tipo de culto en la aplicación móvil Flutter sigan cargando la lista de opciones correctamente desde el servidor.
+## 🚫 Módulo de Asistencia (Cultos)
 
-# Módulo de Reportes
-## 1. Problemas Identificados en el Código Original
-Lógica de Negocio Dispersa: La regla de "acumulación de 3 reportes para generar una amonestación" estaba escrita dentro del controlador de Express. Esto dificultaba su mantenimiento y pruebas unitarias.
+| Capa | Componente | Mejora Aplicada |
+| :--- | :--- | :--- |
+| **Dominio** | `Asistencia.js` | Entidad estándar para registros por ID o Nombre de culto. |
+| **Aplicación** | `ReportarInasistenciaMasiva.js` | Orquestador de persistencia en lote y avisos personalizados. |
+| **Infraestructura** | `AsistenciaRepositorySql.js` | Transaccionalidad atómica y lógica de límites dinámica. |
 
-Falta de Atomicidad: Si el sistema creaba el reporte pero fallaba al crear la amonestación automática, los datos quedaban inconsistentes.
+### 🔍 Análisis de Refactorización
+* **Problema:** Procesamiento masivo ineficiente e inconsistencia en reglas de límites de faltas.
+* **Solución Clean:** Encapsulamiento de límites (2 vs 3 faltas) en el Repositorio bajo una transacción segura.
+* **Integración Flutter:** Visualización rápida de "Lista de Faltantes" mediante operaciones de conjuntos en SQL.
 
-Consultas SQL Gigantes: El uso de subconsultas (getReportanteNombreQuery) y LEFT JOINs complejos dentro de la ruta hacía que el código fuera difícil de leer y propenso a errores de sintaxis.
+---
 
-## 2. Mejoras Aplicadas (Arquitectura Limpia)
-Capa de Dominio: Se implementó la entidad Reporte.js, la cual se encarga de definir el estado inicial del reporte basándose únicamente en el tipo de usuario que lo crea (Regla de Negocio Pura).
+## 👥 Módulo de Usuarios
 
-Capa de Aplicación (Casos de Uso):
+| Capa | Componente | Mejora Aplicada |
+| :--- | :--- | :--- |
+| **Dominio** | `UsuarioAdmin.js` | Validación centralizada de roles y privilegios de acceso. |
+| **Aplicación** | `CambiarRolUsuario.js` | Responsable único de validar estados previos al cambio de rol. |
+| **Infraestructura** | `UsuarioAdminRepositorySql.js` | Limpieza atómica de privilegios (Monitor > Estudiante). |
 
-Se creó CrearReporte.js para orquestar el flujo completo: guardar el reporte, verificar acumulaciones y disparar notificaciones push.
+### 🔍 Análisis de Refactorización
+* **Problema:** Riesgo de inconsistencia al actualizar roles sin limpiar asignaciones previas.
+* **Solución Clean:** Lógica transaccional que asegura la limpieza de datos en `Estudiantes` al degradar un rol de Monitor.
+* **Integración Flutter:** Actualización inmediata de capacidades administrativas tras el cambio de rol.
 
-Capa de Infraestructura (Transaccionalidad):
+---
 
-Se implementó una Transacción SQL en ReporteRepositorySql.js. Esto garantiza que el reporte y la amonestación se guarden juntos o no se guarde nada, protegiendo la integridad de la base de datos.
+## ⚙️ Módulo de Configuración
 
-Paginación Abstraída: La lógica de OFFSET y FETCH NEXT se movió al repositorio, permitiendo que la API maneje grandes volúmenes de datos de forma eficiente.
+| Capa | Componente | Mejora Aplicada |
+| :--- | :--- | :--- |
+| **Aplicación** | `CerrarSemestreActual.js` | Validación de seguridad para operaciones de alto impacto. |
+| **Infraestructura** | `ConfiguracionRepositorySql.js` | Unidad de trabajo para cierre, apertura y vaciado de cuartos. |
 
-## 3. Integración con Flutter
-Se mantuvo la estructura de la respuesta paginada (total, page, limit) para que el scroll infinito y los buscadores en la App de Flutter sigan funcionando sin cambios en el frontend.
+### 🔍 Análisis de Refactorización
+* **Problema:** Operaciones críticas (vaciado de cuartos) expuestas directamente en rutas HTTP.
+* **Solución Clean:** Implementación de integridad referencial forzada mediante transacciones en el Repositorio.
+* **Integración Flutter:** Refresco instantáneo de vistas globales tras el cierre de ciclo académico.
 
-Se validó que las notificaciones push lleguen al dispositivo del estudiante inmediatamente después de que un preceptor apruebe un reporte pendiente.
+---
 
-# Módulo de Amonestaciones
+## ✍️ Módulo de Firmas Digitales
 
-## 1. Problemas Identificados en el Código Original
-- **Duplicidad de Consultas**: La lógica para obtener niveles de amonestación y el listado general estaba acoplada a las rutas, dificultando la reutilización del catálogo en otros módulos.
-- **Falta de Abstracción de Notificaciones**: El envío de alertas push estaba "quemado" dentro del controlador, lo que impedía registrar una amonestación sin disparar obligatoriamente una notificación (importante para procesos automáticos).
+| Capa | Componente | Mejora Aplicada |
+| :--- | :--- | :--- |
+| **Dominio** | `Firma.js` | Validación estática de tipos de documentos firmables. |
+| **Aplicación** | `RegistrarFirmaDigital.js` | Orquestación de validación y persistencia polimórfica. |
+| **Infraestructura** | `FirmaRepositorySql.js` | Resolución dinámica de tablas y optimización de Base64. |
 
-## 2. Mejoras Aplicadas (Arquitectura Limpia)
-- **Capa de Dominio**: Se estandarizó la entidad `Amonestacion.js` para asegurar que todas las sanciones tengan una fecha de registro consistente generada por el sistema.
-- **Capa de Aplicación**: El Caso de Uso `RegistrarAmonestacion.js` ahora centraliza la responsabilidad de persistir la sanción y comunicar al estudiante de forma asíncrona.
-- **Capa de Infraestructura**:
-    - Se centralizaron los `JOINs` complejos en `AmonestacionRepositorySql.js`, permitiendo obtener nombres de preceptores y niveles de catálogo de forma eficiente y en un solo lugar.
-    - Se optimizó el endpoint de `/niveles` para servir como un microservicio de catálogo reutilizable por toda la infraestructura.
+### 🔍 Análisis de Refactorización
+* **Problema:** Lógica condicional compleja en rutas y riesgo de truncamiento en datos Base64.
+* **Solución Clean:** Repositorio capaz de resolver el destino de la firma sin exponer nombres de tablas SQL.
+* **Integración Flutter:** Recepción íntegra de trazos digitales desde el "Signature Pad" del móvil.
 
-## 3. Integración con Flutter
-- Se validó que la App de Flutter reciba correctamente la lista de niveles para llenar los `DropdownButton` en el formulario de registro de disciplina.
-- Se confirmó que el historial de amonestaciones por estudiante se cargue con los nombres de los preceptores involucrados, mejorando la transparencia del proceso disciplinario en el móvil.
-
-
-# Módulo de Asistencia (Cultos)
-## 1. Problemas Identificados en el Código Original
-Procesamiento Masivo Ineficiente: La lógica para reportar faltantes iteraba sobre una lista de matrículas realizando múltiples consultas SQL individuales por cada estudiante, lo que sobrecargaba el pool de conexiones.
-
-Lógica de Negocio Oculta: Las reglas que definen el límite de faltas (2 para cultos vespertinos, 3 para otros) estaban mezcladas con el código del servidor Express, lo que hacía que el sistema fuera difícil de ajustar si las reglas de la institución cambiaban.
-
-Riesgo de Inconsistencia: El envío de notificaciones push y el registro de amonestaciones automáticas no estaban protegidos por una transacción robusta, permitiendo que un error en la red dejara registros a medias.
-
-## 2. Mejoras Aplicadas (Arquitectura Limpia)
-Capa de Dominio: Se creó la entidad Asistencia.js para estandarizar el registro de asistencia, independientemente de si se captura por ID o por nombre del culto.
-
-Capa de Aplicación (Casos de Uso):
-
-Se implementó ReportarInasistenciaMasiva.js, un orquestador que coordina la persistencia en lote y el envío de notificaciones push personalizadas para cada estudiante reportado.
-
-Capa de Infraestructura (Optimización SQL):
-
-Transaccionalidad Atómica: Se encapsuló todo el proceso de reporte y amonestación automática en una sola Transacción SQL. Si un solo paso falla, se revierte todo para evitar "falsos reportes".
-
-Abstracción de Reglas: El repositorio ahora calcula dinámicamente el límite de faltas basándose en el tipo de culto, permitiendo que la capa de aplicación sea más limpia y fácil de leer.
-
-## 3. Integración con Flutter
-Se validó que el flujo de "Lista de Faltantes" (operación de conjuntos en SQL) sea eficiente para que la App de Flutter cargue instantáneamente la lista de estudiantes que no han pasado asistencia.
-
-Se confirmó que la respuesta del servidor tras un reporte masivo devuelva un resumen claro, permitiendo que el Monitor/Preceptor vea una confirmación visual del éxito de la operación en su dispositivo móvil.
-
-
-# Módulo de Usuarios
-
-## 1. Problemas Identificados en el Código Original
-- **Lógica Transaccional en Rutas**: El proceso de limpiar los datos de pasillo de un estudiante al quitarle el rol de monitor estaba mezclado con el código de Express, lo que ponía en riesgo la integridad si una de las dos consultas fallaba.
-- **Validaciones de Negocio Débiles**: Las comprobaciones de si un rol era válido o si el usuario ya tenía ese rol estaban dispersas, dificultando su reutilización en otros procesos administrativos.
-
-## 2. Mejoras Aplicadas (Arquitectura Limpia)
-- **Capa de Dominio**: Se centralizó la validación de roles permitidos en la entidad `UsuarioAdmin.js`, asegurando que solo los roles 2 (Monitor) y 3 (Estudiante) puedan ser gestionados a través de este flujo.
-- **Capa de Aplicación**: El Caso de Uso `CambiarRolUsuario.js` actúa como el único responsable de validar el estado previo del usuario antes de permitir una actualización.
-- **Capa de Infraestructura**:
-    - Se implementó una **Transacción SQL** en el repositorio para asegurar que el cambio de rol en la tabla `Usuarios` y la limpieza de privilegios en la tabla `Estudiantes` ocurran de forma atómica (Todo o nada).
-    - Se aisló la lógica de persistencia, permitiendo que las rutas sean agnósticas a cómo se estructuran las tablas en SQL Server.
-
-## 3. Integración con Flutter
-- Se mantuvo la compatibilidad con los ID de usuario enviados desde la App móvil, garantizando que los cambios de privilegios se reflejen inmediatamente en la interfaz del usuario tras un cierre e inicio de sesión.
-
-
-# Módulo de Configuración
-
-## 1. Problemas Identificados en el Código Original
-- **Operaciones Críticas Expuestas**: Una acción de alto impacto (borrar asignaciones de cuartos de todos los estudiantes) vivía directamente en el archivo de rutas, sin una capa de protección intermedia.
-- **Lógica de Negocio en el Controlador**: La decisión de qué campos de la tabla `Estudiantes` limpiar al finalizar un semestre estaba acoplada al framework Express.
-
-## 2. Mejoras Aplicadas (Arquitectura Limpia)
-- **Capa de Aplicación (Seguridad)**: Se implementó el Caso de Uso `CerrarSemestreActual.js`, el cual valida que los datos de entrada sean correctos antes de siquiera intentar tocar la base de datos.
-- **Capa de Infraestructura (Integridad)**: Se utilizó una **Transacción SQL** en `ConfiguracionRepositorySql.js` para asegurar que el cierre del semestre anterior, la apertura del nuevo y el vaciado de cuartos ocurran como una única unidad de trabajo. Esto evita que el sistema quede en un estado inconsistente (ej. semestre cerrado pero estudiantes aún con cuarto asignado).
-
-## 3. Integración con Flutter
-- Se garantizó que la respuesta JSON informe a la App del preceptor sobre el éxito de la operación masiva, permitiendo que el frontend de Flutter refresque las vistas de ocupación inmediatamente.
-
-
-# Módulo de Firmas Digitales
-
-## 1. Problemas Identificados en el Código Original
-- **Lógica Condicional en Rutas**: El uso de `if/else` para decidir qué tabla actualizar (`Reportes` vs `Amonestaciones`) ensuciaba el controlador HTTP y dificultaba la extensión a nuevos documentos firmables.
-- **Manejo de Grandes Volúmenes de Datos**: La recepción de firmas en Base64 (Strings de gran tamaño) se procesaba sin una validación previa de la entidad, lo que podía causar errores de memoria si el formato no era el adecuado.
-
-## 2. Mejoras Aplicadas (Arquitectura Limpia)
-- **Capa de Dominio**: Se implementó la entidad `Firma.js` con un método estático de validación de tipos, centralizando los documentos que legalmente requieren firma en el Hogar Universitario.
-- **Capa de Infraestructura (Estrategia de Persistencia)**:
-    - Se abstrajo la lógica de actualización en `FirmaRepositorySql.js`. El repositorio ahora es capaz de resolver dinámicamente el destino de la firma sin que la capa de aplicación o de transporte tengan que conocer los nombres de las tablas de SQL Server.
-    - **Optimización de Tipos**: Se configuró explícitamente el uso de `sql.VarChar(sql.MAX)` para garantizar que las firmas de alta resolución enviadas desde Flutter no se trunquen al ser guardadas.
-
-## 3. Integración con Flutter
-- Se garantizó que el endpoint `/api/firmas/guardar` reciba las firmas generadas por el widget de "Signature Pad" en Flutter, asegurando que la reconstrucción del documento firmado sea íntegra y esté vinculada correctamente al historial del estudiante.
+---
