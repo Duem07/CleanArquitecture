@@ -30,7 +30,6 @@ Este proyecto documenta la migración integral de la API del Hogar Universitario
 ### 🔍 Análisis de Refactorización
 * **Problema:** Acoplamiento fuerte entre Express y SQL, dificultando cambios en la lógica de evaluación.
 * **Solución Clean:** Se separó la configuración de Express en `express.js` y se delegó la lógica de negocio al Caso de Uso.
-* **Integración Flutter:** El endpoint `/api/limpieza/registrar` mantiene su contrato para no romper la comunicación con la App.
 
 ---
 
@@ -45,7 +44,6 @@ Este proyecto documenta la migración integral de la API del Hogar Universitario
 ### 🔍 Análisis de Refactorización
 * **Problema:** El manejo de contraseñas y llamadas a APIs externas saturaban las rutas de Express.
 * **Solución Clean:** Se implementó el patrón **Repository** para centralizar el acceso a `dormi.Usuarios` y tablas de roles.
-* **Integración Flutter:** Seguridad robusta y transparente para el inicio de sesión del estudiante y preceptor.
 
 ---
 
@@ -60,7 +58,6 @@ Este proyecto documenta la migración integral de la API del Hogar Universitario
 ### 🔍 Análisis de Refactorización
 * **Problema:** Mezcla de orígenes de datos locales y externos (IDS-APP) en un mismo archivo de rutas.
 * **Solución Clean:** Se encapsuló la obtención de fotos binarias, permitiendo que la API sea agnóstica al origen del archivo.
-* **Integración Flutter:** El widget de perfil en la App carga imágenes JPEG mediante buffers procesados limpiamente.
 
 ---
 
@@ -75,7 +72,6 @@ Este proyecto documenta la migración integral de la API del Hogar Universitario
 ### 🔍 Análisis de Refactorización
 * **Problema:** Lógica de relaciones físicas expuesta en las rutas y dificultad para agrupar datos.
 * **Solución Clean:** Se crearon modelos de infraestructura física, permitiendo validar capacidades de cuartos desde el dominio.
-* **Integración Flutter:** Dropdowns de selección y mapas de ocupación vinculados correctamente en la App.
 
 ---
 
@@ -89,7 +85,6 @@ Este proyecto documenta la migración integral de la API del Hogar Universitario
 ### 🔍 Análisis de Refactorización
 * **Problema:** Consulta directa a catálogos en rutas, limitando la escalabilidad del sistema de asistencia.
 * **Solución Clean:** Repositorio minimalista que actúa como puente único hacia la tabla `Cat_TipoCulto`.
-* **Integración Flutter:** Garantía de persistencia en los contratos JSON para selectores de la App.
 
 ---
 
@@ -104,7 +99,6 @@ Este proyecto documenta la migración integral de la API del Hogar Universitario
 ### 🔍 Análisis de Refactorización
 * **Problema:** Falta de atomicidad en la creación de reportes y amonestaciones automáticas.
 * **Solución Clean:** Uso de **Transacciones SQL** para asegurar que el reporte y la sanción se guarden en conjunto.
-* **Integración Flutter:** Soporte para scroll infinito mediante paginación abstraída en el servidor.
 
 ---
 
@@ -119,7 +113,6 @@ Este proyecto documenta la migración integral de la API del Hogar Universitario
 ### 🔍 Análisis de Refactorización
 * **Problema:** Duplicidad de consultas de catálogos y falta de abstracción en el envío de alertas.
 * **Solución Clean:** Desacoplamiento de notificaciones push, permitiendo registros manuales o automáticos (SISTEMA).
-* **Integración Flutter:** Historial disciplinario transparente con detalles de niveles y preceptores en el móvil.
 
 ---
 
@@ -134,8 +127,6 @@ Este proyecto documenta la migración integral de la API del Hogar Universitario
 ### 🔍 Análisis de Refactorización
 * **Problema:** Procesamiento masivo ineficiente e inconsistencia en reglas de límites de faltas.
 * **Solución Clean:** Encapsulamiento de límites (2 vs 3 faltas) en el Repositorio bajo una transacción segura.
-* **Integración Flutter:** Visualización rápida de "Lista de Faltantes" mediante operaciones de conjuntos en SQL.
-
 ---
 
 ## 👥 Módulo de Usuarios
@@ -149,7 +140,6 @@ Este proyecto documenta la migración integral de la API del Hogar Universitario
 ### 🔍 Análisis de Refactorización
 * **Problema:** Riesgo de inconsistencia al actualizar roles sin limpiar asignaciones previas.
 * **Solución Clean:** Lógica transaccional que asegura la limpieza de datos en `Estudiantes` al degradar un rol de Monitor.
-* **Integración Flutter:** Actualización inmediata de capacidades administrativas tras el cambio de rol.
 
 ---
 
@@ -163,7 +153,6 @@ Este proyecto documenta la migración integral de la API del Hogar Universitario
 ### 🔍 Análisis de Refactorización
 * **Problema:** Operaciones críticas (vaciado de cuartos) expuestas directamente en rutas HTTP.
 * **Solución Clean:** Implementación de integridad referencial forzada mediante transacciones en el Repositorio.
-* **Integración Flutter:** Refresco instantáneo de vistas globales tras el cierre de ciclo académico.
 
 ---
 
@@ -178,6 +167,5 @@ Este proyecto documenta la migración integral de la API del Hogar Universitario
 ### 🔍 Análisis de Refactorización
 * **Problema:** Lógica condicional compleja en rutas y riesgo de truncamiento en datos Base64.
 * **Solución Clean:** Repositorio capaz de resolver el destino de la firma sin exponer nombres de tablas SQL.
-* **Integración Flutter:** Recepción íntegra de trazos digitales desde el "Signature Pad" del móvil.
 
 ---
